@@ -31,18 +31,18 @@ for script in scripts.d/*.sh; do
     FF_LIBS+=" $(get_output $script libs)"
 done
 
-FF_CONFIGURE="$(xargs <<< "$FF_CONFIGURE")"
-FF_CFLAGS="$(xargs <<< "$FF_CFLAGS")"
-FF_CXXFLAGS="$(xargs <<< "$FF_CXXFLAGS")"
-FF_LDFLAGS="$(xargs <<< "$FF_LDFLAGS")"
-FF_LIBS="$(xargs <<< "$FF_LIBS")"
+FF_CONFIGURE="$(xargs <<<"$FF_CONFIGURE")"
+FF_CFLAGS="$(xargs <<<"$FF_CFLAGS")"
+FF_CXXFLAGS="$(xargs <<<"$FF_CXXFLAGS")"
+FF_LDFLAGS="$(xargs <<<"$FF_LDFLAGS")"
+FF_LIBS="$(xargs <<<"$FF_LIBS")"
 
 TESTFILE="uidtestfile"
 rm -f "$TESTFILE"
 docker run --rm -v "$PWD:/uidtestdir" "$IMAGE" /usr/bin/touch "/uidtestdir/$TESTFILE"
 DOCKERUID="$(stat -c "%u" "$TESTFILE")"
 rm -f "$TESTFILE"
-[[ "$DOCKERUID" != "$(id -u)" ]] && UIDARGS=( -u "$(id -u):$(id -g)" ) || UIDARGS=()
+[[ "$DOCKERUID" != "$(id -u)" ]] && UIDARGS=(-u "$(id -u):$(id -g)") || UIDARGS=()
 
 rm -rf ffbuild
 mkdir ffbuild
@@ -76,5 +76,5 @@ rm -rf ffbuild
 
 if [[ -n "$GITHUB_ACTIONS" ]]; then
     echo "::set-output name=build_name::${BUILD_NAME}"
-    echo "${BUILD_NAME}.zip" > "${ARTIFACTS_PATH}/${TARGET}-${VARIANT}${ADDINS_STR:+-}${ADDINS_STR}.txt"
+    echo "${BUILD_NAME}.zip" >"${ARTIFACTS_PATH}/${TARGET}-${VARIANT}${ADDINS_STR:+-}${ADDINS_STR}.txt"
 fi

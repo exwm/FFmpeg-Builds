@@ -16,6 +16,8 @@ ffbuild_dockerbuild() {
     wget "$TF_SRC" -O TF.tar.gz || return -1
     tar xzf TF.tar.gz || return -1
     rm TF.tar.gz
+    ldconfig
+    ldconfig -p | grep tensorflow
     popd || return -1
 }
 
