@@ -31,6 +31,9 @@ for script in scripts.d/*.sh; do
     FF_LIBS+=" $(get_output $script libs)"
 done
 
+FF_CFLAGS+=" -I/usr/include/tensorflow"
+FF_LIBS+=" -ltensorflow"
+
 FF_CONFIGURE="$(xargs <<<"$FF_CONFIGURE")"
 FF_CFLAGS="$(xargs <<<"$FF_CFLAGS")"
 FF_CXXFLAGS="$(xargs <<<"$FF_CXXFLAGS")"
@@ -47,14 +50,39 @@ rm -f "$TESTFILE"
 rm -rf ffbuild
 mkdir ffbuild
 
+rm -rf tf
+mkdir tf
+(
+    cat <<EOF
+#include <stdio.h>
+#include <tensorflow/c/c_api.h>
+
+int main() {
+  printf("Hello from TensorFlow C library version %s\n", TF_Version());
+  return 0;
+}
+EOF
+) >./tf/hello_tf.c
+
+docker run --rm -i "${UIDARGS[@]}" -v $PWD/tf:/tf "$IMAGE" bash -s <<EOF
+    set -xe
+    pushd /tf
+    x86_64-w64-mingw32-gcc -I/usr/local/include -L/usr/local/lib hello_tf.c -ltensorflow -o hello_tf
+EOF
+
 docker run --rm -i "${UIDARGS[@]}" -v $PWD/ffbuild:/ffbuild "$IMAGE" bash -s <<EOF
     set -xe
     cd /ffbuild
     rm -rf ffmpeg prefix
 
-    git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+    git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/FFmpeg/FFmpeg.git ffmpeg
     cd ffmpeg
     git checkout $GIT_BRANCH
+
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+    ls /usr/local/lib
+
+    whereis libtensorflow
 
     ./configure --prefix=/ffbuild/prefix --pkg-config-flags="--static" \$FFBUILD_TARGET_FLAGS $FF_CONFIGURE --extra-cflags="$FF_CFLAGS" --extra-cxxflags="$FF_CXXFLAGS" --extra-ldflags="$FF_LDFLAGS" --extra-libs="$FF_LIBS"
     make -j\$(nproc)
